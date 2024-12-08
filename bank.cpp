@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <sstream>
 #include <iomanip>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <direct.h>
 
 using namespace std;
 
@@ -13,6 +16,30 @@ using namespace std;
         
  */
 
+void ensureDataDirectoryExists()
+{
+    struct stat info;
+
+    // Check if the "data" directory exists
+    if (stat("data", &info) != 0)
+    {
+        cout << "Creating 'data' directory..." << endl;
+#ifdef _WIN32
+        _mkdir("data"); // Windows-specific mkdir
+#else
+        mkdir("data", 0777); // Unix/Linux-specific mkdir with permissions
+#endif
+    }
+    else if (info.st_mode & S_IFDIR)
+    {
+        // Directory exists
+        cout << "'data' directory already exists." << endl;
+    }
+    else
+    {
+        cerr << "Error: A file named 'data' exists but is not a directory!" << endl;
+    }
+}
 string getFileContents(ifstream& File) // Solution from http://www.cplusplus.com/forum/general/58945/ TheMassiveChipmunk 
 {   
     // Returns string to print header to CONSOLE.
@@ -200,15 +227,14 @@ void Bank::infoScreen()
 
     system("cls");
     header();
-    cout << "   Made by Gavin Loo / rawsashimi1604 " << endl;
-    cout << "   Github Link : https://github.com/rawsashimi1604/" << endl;
-    cout << "   Version : v0.02" << endl;
-    cout << "   Version Made : 08-07-2021 " << endl;
+    cout << "   Made by Jayadip Sahoo " << endl;
+
+    
 
     cout << " \n\n";
-    cout << "   ABC Bank is a beginner banking system project I made to learn C++." << endl;
+    cout << "   Emerald Bank is a beginner banking system project I made to learn C++." << endl;
     cout << "   It allows the user to create a username and password, withdraw, deposit and transfer money." << endl;
-    cout << "   Do enjoy and leave feedback on my github!." << endl;
+    
 
     cout << "\n\n\n";
 
@@ -294,7 +320,7 @@ void Bank::bankBalanceScreen()
         stream << fixed << setprecision(2) << Amt;
         amt = stream.str();
 
-        cout << "   Bank Balance available : $" << amt;
+        cout << "   Bank Balance available : ₹" << amt;
         cout << "\n\n";
 
         system("PAUSE");
@@ -311,7 +337,7 @@ void Bank::bankWithdrawScreen()
     {   
         string userInput;
         float amt;
-        cout << "   Please key in your withdrawal amount: $"; cin >> userInput;
+        cout << "   Please key in your withdrawal amount: ₹"; cin >> userInput;
         cout << "\n\n";
 
         if (userInput.find_first_not_of("1234567890.") != string::npos )
@@ -330,7 +356,7 @@ void Bank::bankWithdrawScreen()
 
         if (withdraw(unAttempt, amt))
         {
-            cout << "   Successfully withdrawed $" << amt << " from account.\n";
+            cout << "   Successfully withdrawed ₹" << amt << " from account.\n";
             Sleep(1000);
             bankMenuScreen();
         }
@@ -351,7 +377,7 @@ void Bank::bankDepositScreen()
     {   
         string userInput;
         float amt;
-        cout << "   Please key in your deposit amount: $"; cin >> userInput;
+        cout << "   Please key in your deposit amount: ₹"; cin >> userInput;
         cout << "\n\n";
 
         if (userInput.find_first_not_of("1234567890.") != string::npos )
@@ -370,7 +396,7 @@ void Bank::bankDepositScreen()
 
         if (deposit(unAttempt, amt))
         {
-            cout << "   Successfully deposited $" << amt << " from account.\n";
+            cout << "   Successfully deposited ₹" << amt << " from account.\n";
             Sleep(1000);
             bankMenuScreen();
         }
@@ -386,7 +412,7 @@ void Bank::bankTransferScreen()
         string amtInput;
         string toInput;
         float amt;
-        cout << "   Please key in your transfer amount: $"; cin >> amtInput;
+        cout << "   Please key in your transfer amount: ₹"; cin >> amtInput;
         cout << "\n";
 
         cout << "   Please key in your transfer recipient: "; cin >> toInput;
@@ -408,7 +434,7 @@ void Bank::bankTransferScreen()
 
         if (transfer(unAttempt, toInput, amt))
         {   
-            cout << "   Successfully transferred $" << amt << " from account to " << toInput << ".\n";
+            cout << "   Successfully transferred ₹" << amt << " from account to " << toInput << ".\n";
             Sleep(1000);
             bankMenuScreen();
         }
@@ -506,27 +532,46 @@ bool Bank::transfer(const string from_user, const string to_user, float amount)
     return false;
 }
 
+// bool Bank::createUser(const string username, const string password)
+// {   
+//     string fileName = username + ".dat";
+//     string pathName = "data\\" + fileName;
+    
+//     if (!ifstream(pathName)) // If file does not exist, create
+//     {   
+//         ofstream file(pathName, ios::out);
+//         file << username << endl; // un
+//         file << password << endl; // pw
+//         file << 0 << endl; // balance
+        
+//         file.close();
+//         return true; // SUCCESS.
+//     }
+//     else
+//     {   
+//         return false; // username already exists. Thus do not create.
+//     }
+// }
 bool Bank::createUser(const string username, const string password)
 {   
-    string fileName = username + ".dat";
-    string pathName = "data\\" + fileName;
+    string fileName = username + ".dat";      // e.g., "john.dat"
+    string pathName = "data\\" + fileName;    // e.g., "data\\john.dat"
     
-    if (!ifstream(pathName)) // If file does not exist, create
+    if (!ifstream(pathName))                  // Check if the file does not exist
     {   
-        ofstream file(pathName, ios::out);
-        file << username << endl; // un
-        file << password << endl; // pw
-        file << 0 << endl; // balance
+        ofstream file(pathName, ios::out);    // Create a new file
+        file << username << endl;            // Write username
+        file << password << endl;            // Write password
+        file << 0 << endl;                   // Write initial balance (0)
         
         file.close();
-        return true; // SUCCESS.
+        return true; // SUCCESS
     }
     else
     {   
-        return false; // username already exists. Thus do not create.
+        return false; // Username already exists
     }
 }
-
 bool Bank::authenticateUser(const string usernameAttempt)
 {
     string fileName = usernameAttempt + ".dat";
@@ -559,8 +604,9 @@ bool Bank::authenticatePassword(const string usernameAttempt, const string passw
     }
 }
 
-int main ()
-{   
+int main()
+{
+    ensureDataDirectoryExists();
     Bank app;
     app.mainMenu();
     return 0;
